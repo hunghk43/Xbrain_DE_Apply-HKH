@@ -1,0 +1,237 @@
+{
+  "summary": {
+    "total_raw_lines_attempted": "see below",
+    "json_parse_errors": 18,
+    "invalid_timestamp_rejected": 20,
+    "duplicates_removed": 28,
+    "timestamp_anomalies_flagged": 0,
+    "level_imputed_records": 18,
+    "final_clean_records": 2857
+  },
+  "issue_breakdown": {
+    "json_parse_error": {
+      "count": 18,
+      "description": "Dòng JSONL không parse được (JSON bị truncate hoặc malformed)",
+      "action": "Bỏ qua hoàn toàn",
+      "samples": [
+        {
+          "line_no": 39,
+          "raw": "{\"timestamp\": \"2026-07-27T02:56:2",
+          "error": "Unterminated string starting at: line 1 column 15 (char 14)",
+          "issue_type": "json_parse_error"
+        },
+        {
+          "line_no": 157,
+          "raw": "{\"timestamp\": \"2026-07-27T10:00:28+07:00\", \"service\": \"web-portal\", \"level\": \"INFO\", \"message\": \"Request completed path=",
+          "error": "Unterminated string starting at: line 1 column 97 (char 96)",
+          "issue_type": "json_parse_error"
+        },
+        {
+          "line_no": 290,
+          "raw": "{\"timestamp\": \"2026-07-27T17:49:17Z\", \"service\": \"batch-report\", \"level\": \"ERROR",
+          "error": "Unterminated string starting at: line 1 column 75 (char 74)",
+          "issue_type": "json_parse_error"
+        },
+        {
+          "line_no": 348,
+          "raw": "{\"timestamp\": \"2026-07-27T20:48:32Z\", \"service\": \"notification-worker\",",
+          "error": "Expecting property name enclosed in double quotes: line 1 column 72 (char 71)",
+          "issue_type": "json_parse_error"
+        },
+        {
+          "line_no": 402,
+          "raw": "{\"timestamp\": \"2026-07-28T01:30:48+",
+          "error": "Unterminated string starting at: line 1 column 15 (char 14)",
+          "issue_type": "json_parse_error"
+        }
+      ]
+    },
+    "invalid_timestamp": {
+      "count": 20,
+      "description": "Field timestamp không parse được thành datetime (vd: 'not-a-date')",
+      "action": "Loại bỏ bản ghi",
+      "samples": [
+        {
+          "_line_no": 34,
+          "timestamp": "not-a-date",
+          "service": "auth-service",
+          "message": "Clock sync failed"
+        },
+        {
+          "_line_no": 231,
+          "timestamp": "not-a-date",
+          "service": "auth-service",
+          "message": "Clock sync failed"
+        },
+        {
+          "_line_no": 489,
+          "timestamp": "not-a-date",
+          "service": "auth-service",
+          "message": "Clock sync failed"
+        },
+        {
+          "_line_no": 508,
+          "timestamp": "not-a-date",
+          "service": "batch-report",
+          "message": "Clock sync failed"
+        },
+        {
+          "_line_no": 559,
+          "timestamp": "not-a-date",
+          "service": "notification-worker",
+          "message": "Clock sync failed"
+        }
+      ]
+    },
+    "duplicate_record": {
+      "count": 28,
+      "description": "Bản ghi trùng hoàn toàn (request_id + timestamp + message)",
+      "action": "Giữ bản đầu tiên, loại bỏ bản sau"
+    },
+    "timestamp_anomaly": {
+      "count": 0,
+      "description": "Timestamp nằm ngoài khoảng 7 ngày kỳ vọng (27/07–02/08/2026)",
+      "action": "Giữ lại, đánh flag is_ts_anomaly=True để phân tích riêng",
+      "samples": []
+    },
+    "level_imputed": {
+      "count": 18,
+      "description": "Bản ghi thiếu field 'level'; điền giá trị 'UNKNOWN'",
+      "action": "Giữ lại, đánh flag level_imputed=True",
+      "samples": [
+        {
+          "timestamp": "2026-07-27 23:43:39+00:00",
+          "service": "batch-report",
+          "message": "Heartbeat ok",
+          "request_id": "req-41470269"
+        },
+        {
+          "timestamp": "2026-07-27 23:57:02+00:00",
+          "service": "auth-service",
+          "message": "Heartbeat ok",
+          "request_id": "req-99461443"
+        },
+        {
+          "timestamp": "2026-07-28 18:01:01+00:00",
+          "service": "auth-service",
+          "message": "Heartbeat ok",
+          "request_id": "req-29057175"
+        },
+        {
+          "timestamp": "2026-07-29 03:14:59+00:00",
+          "service": "batch-report",
+          "message": "Heartbeat ok",
+          "request_id": "req-22252693"
+        },
+        {
+          "timestamp": "2026-07-30 12:07:36+00:00",
+          "service": "notification-worker",
+          "message": "Heartbeat ok",
+          "request_id": "req-48936328"
+        },
+        {
+          "timestamp": "2026-07-30 13:53:09+00:00",
+          "service": "payment-api",
+          "message": "Heartbeat ok",
+          "request_id": "req-89098923"
+        },
+        {
+          "timestamp": "2026-07-30 18:23:58+00:00",
+          "service": "payment-api",
+          "message": "Heartbeat ok",
+          "request_id": "req-30906603"
+        },
+        {
+          "timestamp": "2026-07-30 23:57:51+00:00",
+          "service": "payment-api",
+          "message": "Heartbeat ok",
+          "request_id": "req-80593774"
+        },
+        {
+          "timestamp": "2026-07-31 06:42:07+00:00",
+          "service": "payment-api",
+          "message": "Heartbeat ok",
+          "request_id": "req-11502307"
+        },
+        {
+          "timestamp": "2026-07-31 18:38:08+00:00",
+          "service": "auth-service",
+          "message": "Heartbeat ok",
+          "request_id": "req-18963036"
+        },
+        {
+          "timestamp": "2026-07-31 21:25:54+00:00",
+          "service": "notification-worker",
+          "message": "Heartbeat ok",
+          "request_id": "req-51570260"
+        },
+        {
+          "timestamp": "2026-07-31 22:31:38+00:00",
+          "service": "batch-report",
+          "message": "Heartbeat ok",
+          "request_id": "req-51396067"
+        },
+        {
+          "timestamp": "2026-08-01 00:53:41+00:00",
+          "service": "web-portal",
+          "message": "Heartbeat ok",
+          "request_id": "req-71725422"
+        },
+        {
+          "timestamp": "2026-08-01 01:47:50+00:00",
+          "service": "payment-api",
+          "message": "Heartbeat ok",
+          "request_id": "req-21881015"
+        },
+        {
+          "timestamp": "2026-08-01 12:13:50+00:00",
+          "service": "payment-api",
+          "message": "Heartbeat ok",
+          "request_id": "req-93885180"
+        },
+        {
+          "timestamp": "2026-08-01 23:34:47+00:00",
+          "service": "web-portal",
+          "message": "Heartbeat ok",
+          "request_id": "req-23192745"
+        },
+        {
+          "timestamp": "2026-08-02 01:19:22+00:00",
+          "service": "auth-service",
+          "message": "Heartbeat ok",
+          "request_id": "req-11122998"
+        },
+        {
+          "timestamp": "2026-08-02 11:38:14+00:00",
+          "service": "auth-service",
+          "message": "Heartbeat ok",
+          "request_id": "req-37980569"
+        }
+      ]
+    }
+  },
+  "schema_output": {
+    "columns": [
+      "timestamp",
+      "service",
+      "level",
+      "message",
+      "request_id",
+      "level_imputed",
+      "is_ts_anomaly",
+      "date",
+      "hour"
+    ],
+    "dtypes": {
+      "timestamp": "datetime64[us, UTC]",
+      "service": "str",
+      "level": "str",
+      "message": "str",
+      "request_id": "str",
+      "level_imputed": "bool",
+      "is_ts_anomaly": "bool",
+      "date": "str",
+      "hour": "int32"
+    }
+  }
+}
