@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# Output files (generated, không commit binary lớn)
+pipeline/output/*.parquet
+kb/output/*.db
+
+# Nhưng GIỮ CSV và JSON report để reviewer xem kết quả
+!pipeline/output/*.csv
+!pipeline/output/*.json
+
+# OS
+.DS_Store
+Thumbs.db
