@@ -130,4 +130,99 @@ Test thủ công 5 case (xem phần Bài 2 P3), verify output JSON có đúng sc
 
 ---
 
-*(Các entry 07–10 sẽ được thêm khi hoàn thiện Phần B và quá trình kiểm tra)*
+## Entry 07 — Fix search function: SQLite FTS5 và tiếng Việt
+
+**Thời điểm:** Ngày 2, Phần B — debug KB  
+**Công cụ AI:** Kiro  
+**Mục tiêu:** Search trả 0 kết quả cho hầu hết query tiếng Việt multi-word
+
+**Vấn đề phát hiện:**
+Chạy eval 10 câu → 4/10 PASS. FTS5 phrase match thất bại với multi-word tiếng Việt ("sao lưu 23:30" → 0 results) vì tokenizer mặc định `unicode61` không handle compound phrase tiếng Việt như mong đợi.
+
+**Prompt gửi AI:**
+> SQLite FTS5 trả 0 kết quả cho query "sao lưu 23:30" nhưng cùng nội dung đó có trong DB. Nguyên nhân và cách fix mà không cần thêm dependency ngoài?
+
+**AI trả lời:**
+Giải thích tokenizer unicode61 split theo whitespace nhưng phrase match `"sao lưu 23:30"` yêu cầu exact token sequence. Đề xuất 2-tier: FTS5 → fallback multi-keyword AND LIKE (tách query thành keywords, tất cả phải xuất hiện trong content).
+
+**Kiểm chứng:**
+Implement fallback, chạy lại eval → 9/10 PASS. Verify logic với case Q10 (version trap) — fallback vẫn giữ `active=1` filter, không leak superseded content.
+
+**Kết quả dùng:**
+Search function trong `kb_builder.py` và `run_eval.py` — 2-tier: FTS5 phrase → multi-keyword LIKE fallback, cả hai tầng đều lọc `active=1`.
+
+---
+
+## Entry 08 — Thiết kế cơ chế conflict resolution cho POL-01 v1 vs v2
+
+**Thời điểm:** Ngày 2, Phần B2  
+**Công cụ AI:** Kiro  
+**Mục tiêu:** Tìm và xử lý mâu thuẫn trong bộ tài liệu
+
+**Prompt gửi AI:**
+> Đọc 8 tài liệu docs. Tìm các cặp nội dung mâu thuẫn nhau. Với mỗi cặp: chỉ rõ mâu thuẫn là gì và đề xuất cơ chế để KB luôn trả lời theo bản đúng.
+
+**AI trả lời:**
+Phát hiện POL-01 v1 vs v2 với 4 điểm mâu thuẫn: giờ backup (22:00 vs 23:30), thời gian lưu giữ (7 vs 30 ngày), nơi lưu trữ, yêu cầu phê duyệt khôi phục. Đề xuất dùng `active` flag + `superseded_by` pointer.
+
+**Kiểm chứng:**
+Đọc kỹ cả hai file POL-01. Xác nhận tất cả 4 điểm mâu thuẫn đều chính xác. V2 có dòng "Thay thế phiên bản trước" xác nhận v2 là bản hiệu lực.
+
+**Test version trap:**
+Query "22:00" → 0 active results (v1 với active=0 bị block).  
+Query "23:30" → POL-01 v2.0 active=1 được trả về. ✓
+
+**Kết quả dùng:**
+`DOC_CATALOG` trong `kb_builder.py` với `active=False` cho v1, cơ chế `WHERE active=1` trong tất cả search queries.
+
+
+
+---
+
+## Entry 09 — Viết review Task A: phát hiện 6 lỗi trong câu trả lời AI
+
+**Thời điểm:** Ngày 2, Bài 2 Task A  
+**Công cụ AI:** Kiro  
+**Mục tiêu:** Xác định và giải thích đầy đủ tất cả lỗi kỹ thuật trong đoạn trả lời AI đề bài cho
+
+**Prompt gửi AI:**
+> Đọc đoạn trả lời AI trong đề Bài 2. Liệt kê tất cả điểm sai kỹ thuật, giải thích vì sao sai, đề xuất sửa lại. Phân loại mức độ nghiêm trọng.
+
+**AI trả lời:**
+Phát hiện đúng 6 lỗi: S3 Standard-IA cho hot data, Glue đọc RDS production mỗi 5 phút, Parquet mô tả là row-based, Lambda timeout 15 phút, chunk cố định 4.000 token, không version KB.
+
+**Kiểm chứng từng lỗi:**
+- Lỗi 1 (S3 Standard-IA): Xác nhận từ AWS S3 Pricing page — Standard-IA có phí retrieval $0.01/GB, không miễn phí như Standard
+- Lỗi 2 (Glue đọc RDS production): Từ Accelerator — đây là anti-pattern, sẽ tạo load lên production DB
+- Lỗi 3 (Parquet row-based): Xác nhận từ Apache Parquet docs — Parquet là columnar, không phải row-based
+- Lỗi 4 (Lambda 15 phút): Xác nhận từ AWS Lambda docs — hard limit 900 seconds (15 minutes)
+- Lỗi 5 (chunk 4.000 token): Từ `reading/01_chunking_basics.md` — "không có con số đúng cho mọi trường hợp"
+- Lỗi 6 (không version KB): Từ `reading/01_chunking_basics.md` Mục 3 — đây là "rủi ro vận hành số một của hệ thống RAG"; verify bằng chính thực tế POL-01 v1 vs v2 trong data pack
+
+**Kết quả dùng:** `ai_review.md` — review đầy đủ 6 lỗi với nguồn kiểm chứng cụ thể cho từng lỗi.
+
+---
+
+## Entry 10 — Thiết kế prompt extraction JSON từ message log
+
+**Thời điểm:** Ngày 2, Bài 2 Task B  
+**Công cụ AI:** Kiro  
+**Mục tiêu:** Viết prompt có cấu trúc, xử lý được edge case, không hallucinate error_code
+
+**Prompt gửi AI:**
+> Viết system prompt cho LLM trích xuất message log thành JSON: error_code, error_type, component, parameters, is_error, confidence. Xử lý đủ ca: ERROR rõ, INFO bình thường, WARN mơ hồ, message thiếu thông tin. KHÔNG được bịa thông tin không có trong message.
+
+**AI trả lời:**
+Draft system prompt với schema JSON, 3 few-shot examples, và 5 rule rõ ràng về null vs hallucination.
+
+**Kiểm chứng:**
+Đọc kỹ prompt và test thủ công 5 case từ data pack thực:
+- TC2 (INFO "Session created"): phát hiện ban đầu AI không có rule rõ ràng cho INFO → `is_error` có thể trả `true` → thêm rule #2 rõ ràng "INFO → is_error=false, error_code=null"
+- TC3 (WARN "Queue depth high"): phát hiện WARN mơ hồ cần được xử lý riêng → thêm rule #3
+- TC5 (ERR NullPointer không có tham số số học): phát hiện prompt ban đầu trả `confidence="high"` cho ca ít thông tin → thêm rule #4 về confidence
+
+**Điểm AI sai / tôi điều chỉnh:**
+- Prompt ban đầu thiếu rule về `confidence` → thêm rule #4
+- Rule về "không bịa" trong version đầu không đủ rõ → viết lại thành "Chỉ trích xuất thông tin CÓ TRONG message. KHÔNG suy diễn, KHÔNG bịa thêm." (tường minh hơn)
+
+**Kết quả dùng:** `prompt_design.md` — prompt hoàn chỉnh + 5 test case + phương pháp đánh giá trên 3.000 dòng thật.
